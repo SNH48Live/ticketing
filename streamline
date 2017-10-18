@@ -1,0 +1,19 @@
+#!/usr/bin/env zsh
+
+# Requires env var: IMGUR_CLIENT_ID
+# Register at https://api.imgur.com/oauth2/addclient
+# Existing apps at https://imgur.com/account/settings/apps
+
+here=$0:A:h
+cd $here
+mkdir -p images
+
+./screenshot.js
+timestamp=$(date +%s)
+isodatetime=$(TZ=Asia/Shanghai date -d @$timestamp --iso-8601=s)
+output=images/ticketing-$timestamp.png
+convert ticketing.png -font Monaco -pointsize 20 -gravity southwest -annotate +10+10 $isodatetime $output
+optipng -silent $output
+rm ticketing.png
+echo $output
+curl -s -H "Authorization: Client-ID $IMGUR_CLIENT_ID" -F "image=@$output" https://api.imgur.com/3/image.json | jq -r '.data.link' | tee imgur.log
