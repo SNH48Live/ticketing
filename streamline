@@ -1,8 +1,6 @@
 #!/usr/bin/env zsh
 
-# Requires env var: IMGUR_CLIENT_ID
-# Register at https://api.imgur.com/oauth2/addclient
-# Existing apps at https://imgur.com/account/settings/apps
+# A custom postprocess script is supported.
 
 here=$0:A:h
 cd $here
@@ -17,4 +15,5 @@ convert ticketing.png -font Courier -pointsize 24 -gravity southwest -annotate +
 optipng -silent $output
 rm ticketing.png
 echo $output
-curl -s -H "Authorization: Client-ID $IMGUR_CLIENT_ID" -F "image=@$output" https://api.imgur.com/3/image.json | jq -r '.data.link' | tee imgur.log
+
+[[ -x postprocess ]] && postprocess $output
