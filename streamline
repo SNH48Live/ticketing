@@ -12,8 +12,8 @@ mkdir -p images
 timestamp=$(date +%s)
 humantimestamp=$(TZ=Asia/Shanghai date -d @$timestamp +%Y%m%d%H%M%S)
 isodatetime=$(TZ=Asia/Shanghai date -d @$timestamp --iso-8601=s)
-convert ticketing.png -font Monaco -pointsize 20 -gravity southwest -annotate +10+10 $isodatetime $output
 output=images/ticketing-$humantimestamp.png
+convert ticketing.png -font Courier -pointsize 24 -gravity southwest -annotate +10+10 $isodatetime $output
 optipng -silent $output
 rm ticketing.png
 echo $output
