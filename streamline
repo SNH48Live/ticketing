@@ -10,9 +10,10 @@ mkdir -p images
 
 ./screenshot.js
 timestamp=$(date +%s)
+humantimestamp=$(TZ=Asia/Shanghai date -d @$timestamp +%Y%m%d%H%M%S)
 isodatetime=$(TZ=Asia/Shanghai date -d @$timestamp --iso-8601=s)
-output=images/ticketing-$timestamp.png
 convert ticketing.png -font Monaco -pointsize 20 -gravity southwest -annotate +10+10 $isodatetime $output
+output=images/ticketing-$humantimestamp.png
 optipng -silent $output
 rm ticketing.png
 echo $output
