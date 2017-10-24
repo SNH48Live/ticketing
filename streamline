@@ -47,7 +47,7 @@ timestamp=$(date +%s)
 humantimestamp=$(TZ=Asia/Shanghai date -d @$timestamp +%Y%m%d%H%M%S)
 isodatetime=$(TZ=Asia/Shanghai date -d @$timestamp --iso-8601=s)
 output=images/ticketing-$humantimestamp.png
-convert ticketing.png -font Courier -pointsize 24 -gravity southwest -annotate +10+10 $isodatetime $output
+convert ticketing.png -resize 50% -font Courier -pointsize 16 -gravity southwest -annotate +10+10 $isodatetime $output
 optipng -silent $output
 rm ticketing.png
 echo $output
