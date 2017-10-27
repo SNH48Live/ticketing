@@ -1,0 +1,360 @@
+#!/usr/bin/env python3
+
+import datetime
+import locale
+import logging
+import multiprocessing
+import pathlib
+import re
+import time
+
+import attrdict
+import bs4
+import jinja2
+import peewee
+import requests
+
+
+locale.setlocale(locale.LC_TIME, 'zh_CN.UTF-8')
+logging.basicConfig(format='[%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
+CST = datetime.timezone(datetime.timedelta(hours=8))  # China Standard Time
+TODAY = datetime.datetime.now(tz=CST).date()
+NEXT_MONDAY = TODAY + datetime.timedelta((-TODAY.isoweekday()) % 7 + 1)
+
+
+HERE = pathlib.Path(__file__).resolve().parent
+ROOT = HERE.parent
+IMAGES_DIR = ROOT / 'images'
+db = peewee.SqliteDatabase(str(HERE / 'records.db'))
+
+
+class Record(peewee.Model):
+    id = peewee.IntegerField(primary_key=True)
+    theater = peewee.TextField()
+    date = peewee.DateField()
+    team = peewee.TextField()
+    draw = peewee.BooleanField()
+
+    class Meta:
+        database = db
+
+
+ENV = jinja2.Environment(loader=jinja2.BaseLoader())
+
+
+def theaterid(theater):
+    if theater == '上海':
+        return 'snh'
+    elif theater == '北京':
+        return 'bej'
+    elif theater == '广州':
+        return 'gnz'
+    elif theater == '沈阳':
+        return 'shy'
+    elif theater == '重庆':
+        return 'ckg'
+
+
+def theater_sort_key(theater):
+    if theater == '上海':
+        return 0
+    elif theater == '北京':
+        return 1
+    elif theater == '广州':
+        return 2
+    elif theater == '沈阳':
+        return 3
+    elif theater == '重庆':
+        return 4
+
+
+def teamid(team):
+    if team.startswith('S队') or team.startswith('SII队'):
+        return 's2'
+    elif team.startswith('N队') or team.startswith('NII队'):
+        return 'n2'
+    elif team.startswith('H队') or team.startswith('HII队'):
+        return 'h2'
+    elif team.startswith('X队'):
+        return 'x'
+    elif team.startswith('XII队'):
+        return 'x2'
+    elif team.startswith('B队'):
+        return 'b'
+    elif team.startswith('E队'):
+        return 'e'
+    elif team.startswith('J队'):
+        return 'j'
+    elif team.startswith('G队'):
+        return 'g'
+    elif team.startswith('NIII队'):
+        return 'n3'
+    elif team.startswith('Z队'):
+        return 'z'
+    elif team.startswith('SIII队'):
+        return 's3'
+    elif team.startswith('HIII队'):
+        return 'h3'
+    elif team.startswith('C队'):
+        return 'c'
+    elif team.startswith('K队'):
+        return 'k'
+
+
+ENV.filters['theaterid'] = theaterid
+ENV.filters['teamid'] = teamid
+
+
+TEMPLATE = ENV.from_string('''\
+<svg xmlns="http://www.w3.org/2000/svg" width="370" height="{{ (entries|length + 1) * 25 + 45 }}">
+  <foreignObject width="100%" height="100%">
+    <style>
+      * { box-sizing: border-box; }
+      div { background: #fff; }
+      h1 { font-size: 100%; text-align: center; margin: 3px; }
+      #timestamp { font-size: 60%; text-align: center; margin: 3px; }
+      #timestamp time { font-family: Courier, monospace; }
+      table { width: 370px; table-layout: fixed; border-collapse: collapse; text-align: center; }
+      table, th, td { border: 1px solid #888; }
+      th, td { height: 25px; }
+      th, th.stat { font-weight: bold; color: inherit; background: #e8e8e8; }
+      .theater { width: 40px; }
+      .date { width: 115px; }
+      .weekday { background: #e4e4e4; }
+      .team { width: 60px; padding-left: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .draw { width: 20px; }
+      .stat { width: 40px; color: #fff; background: #ccc; }
+      .vip.open { background: #f39800; }
+      .regular.open { background: #59c4ec; }
+      .sro.open { background: #77d600; }
+      .snh { background: #90d2f5; }
+      .bej { background: #ff2370; }
+      .gnz { background: #a9c914; }
+      .shy { background: #e200ce; }
+      .ckg { background: #a46200; }
+      .s2 { background: #a1d5ed; }
+      .n2 { background: #be98c7; }
+      .h2 { background: #f8941d; }
+      .x { background: #b1d61b; }
+      .x2 { background: #03c070; }
+      .b { background: #fb3078; }
+      .e { background: #0ac7c2; }
+      .j { background: #0077cc; }
+      .g { background: #9bba40; }
+      .n3 { background: #ffe14a; }
+      .z { background: #e9617b; }
+      .s3 { background: #e200cd; }
+      .h3 { background: #a243d6; }
+      .c { background: #9d6323; }
+      .k { background: #fe5044; }
+    </style>
+    <div xmlns="http://www.w3.org/1999/xhtml">
+      <h1>10月30日至11月05日公演售票情况</h1>
+      <div id="timestamp">生成时间：<time datetime="{{ timestamp.isoformat() }}">{{ timestamp.isoformat() }}</time></div>
+      <table>
+        <tr>
+          <th class="theater">剧场</th>
+          <th class="date">日期</th>
+          <th class="team">队伍</th>
+          <th class="draw">抽</th>
+          <th class="stat">V座</th>
+          <th class="stat">普座</th>
+          <th class="stat">站票</th>
+        </tr>
+        {%- for entry in entries %}
+        <tr>
+          <td class="theater {{ entry.theater|theaterid }}">{{ entry.theater|e }}</td>
+          <td class="date{% if entry.date.isoweekday() <= 5 %} weekday{% endif %}">
+            <time datetime="{{ entry.date.strftime('%Y-%m-%d') }}">{{ entry.date.strftime('%m月%d日 周%a') }}</time>
+          </td>
+          <td class="team {{ entry.team|teamid }}">{{ entry.team|e }}</td>
+          <td class="draw">{% if entry.draw_ratios %}●{% endif %}</td>
+          {%- set av = entry.availability %}
+          {%- set ratios = entry.draw_ratios %}
+          {%- if ratios %}
+          <td class="stat vip{% if av.vip %} open{% endif %}">{{ ratios.vip|e }}</td>
+          <td class="stat regular{% if av.regular %} open{% endif %}">{{ ratios.regular|e }}</td>
+          <td class="stat sro{% if av.sro %} open{% endif %}">{{ ratios.sro|e }}</td>
+          {%- else %}
+          <td class="stat vip{% if av.vip %} open{% endif %}"></td>
+          <td class="stat regular{% if av.regular %} open{% endif %}"></td>
+          <td class="stat sro{% if av.sro %} open{% endif %}"></td>
+          {%- endif %}
+        </tr>
+        {%- endfor %}
+      </table>
+    </div>
+  </foreignObject>
+</svg>
+''')
+
+
+def parse_page_html(html):
+    soup = bs4.BeautifulSoup(html, 'html.parser')
+
+    # Extract metadata
+    title = soup.find(class_='i_tit').text
+
+    m = re.match(r'(.*)星梦剧院(\d+)月(\d+)日(.*?)(?:剧场)?公演(?:首演)?$', title)
+    if not m:
+        raise ValueError(f'malformed title: {title}')
+    theater = m.group(1)
+    month = int(m.group(2))
+    day = int(m.group(3))
+    team = m.group(4)
+
+    if theater not in ('上海', '北京', '广州', '沈阳', '重庆'):
+        raise ValueError(f'unrecognized theater location: {location}')
+
+    date = datetime.date(TODAY.year, month, day)
+    if date < TODAY:
+        date = datetime.date(TODAY.year + 1, month, day)
+
+    metadata = {
+        'theater': theater,
+        'date': date,
+        'team': team,
+    }
+
+    # Extract draw ratios (if any)
+    draw_keyword = soup.find(string=re.compile('抽选比例'))
+    if not draw_keyword:
+        # Not a draw
+        return metadata, None
+
+    draw_ratios = []
+    for i in draw_keyword.parent.find_next_sibling('div').find_all('i'):
+        text = i.text.strip()
+        if text == '未满':
+            ratio = '<1'
+        else:
+            m = re.match('^已达座位上限(.*)$', text)
+            ratio = m.group(1)
+            float(ratio)  # Make sure the ratio is a float and doesn't contain other crap
+        draw_ratios.append(ratio)
+    return metadata, {
+        'vip': draw_ratios[0],  # V座
+        'regular': draw_ratios[1],  # 普座
+        'sro': draw_ratios[2],  # 站票
+    }
+
+
+def parse_page(id):
+    url = f'https://shop.48.cn/tickets/item/{id}'
+    html = requests.get(url).text
+    return parse_page_html(html)
+
+
+def parse_api(id):
+    url = f'https://shop.48.cn/tickets/saleList?id={id}&brand_id=-1'
+    resp = requests.get(url).json()
+    availability = {obj['seat_type']: obj['amount'] > 0 and obj['tickets_sale_is_on_sale']
+                    for obj in resp}
+    return {
+        'vip': availability[2],  # V座
+        'regular': availability[3],  # 普座
+        'sro': availability[4],  # 站票
+    }
+
+
+def get(id, check_draw_ratios=True, known_to_have_draw=False):
+    if check_draw_ratios:
+        data, draw_ratios = parse_page(id)
+        if known_to_have_draw and not draw_ratios:
+            draw_ratios = {
+                'vip': '',
+                'regular': '',
+                'sro': '',
+            }
+    else:
+        data, draw_ratios = {}, None
+
+    data['id'] = id
+    availability = parse_api(id)
+    data['availability'] = availability
+    data['draw_ratios'] = draw_ratios
+
+    try:
+        record = Record.get(Record.id == id)
+    except peewee.DoesNotExist:
+        # We will create the record in the main process.
+        pass
+    else:
+        data['theater'] = record.theater
+        data['date'] = record.date
+        data['team'] = record.team
+
+    return data
+
+
+# Used in a multiprocessing.Pool.
+def get_wrapper(args):
+    # Connection cannot be shared between processes.
+    with db.execution_context():
+        id, draw = args
+        if draw is None:
+            data = get(id)
+        else:
+            data = get(id, check_draw_ratios=draw, known_to_have_draw=draw)
+    return attrdict.AttrDict(data)
+
+
+# s is a string that looks like "/Date(1509102000000)/"
+def parse_api_date(s):
+    m = re.match('^/Date\((\d+)\)/$', s)
+    return datetime.datetime.fromtimestamp(int(m.group(1)) / 1000, tz=CST).date()
+
+
+# Returns a list of (id, draw), where draw indicates whether there's a
+# ticket draw for this performance; draw is None if unknown.
+def collect_ids():
+    stored_records = list(Record.select().where(Record.date >= NEXT_MONDAY))
+    ids = set(record.id for record in stored_records)
+    draw = {record.id: record.draw for record in stored_records}
+    try:
+        url = 'https://shop.48.cn/Home/IndexTickets?brand_id=-1&team_type=-1&date_type=0'
+        ids |= set(obj['tickets_id'] for obj in requests.get(url).json()
+                   if parse_api_date(obj['start_playdate']) >= NEXT_MONDAY)
+    except Exception:
+        logger.error('Failed to fetch or parse index')
+    return [(id, draw.get(id)) for id in sorted(ids)]
+
+
+def main():
+    db.create_tables([Record], safe=True)
+    collected = collect_ids()
+    timestamp = datetime.datetime.fromtimestamp(int(time.time()), tz=CST)
+    # Use a pool of at most 8 workers; spamming requests could result in
+    # an IP ban (found it out the hard way).
+    poolsize = min(len(collected), 8)
+    with multiprocessing.Pool(poolsize) as pool:
+        entries = list(pool.map(get_wrapper, collected))
+    for entry in entries:
+        id = entry['id']
+        try:
+            record = Record.get(Record.id == id)
+        except peewee.DoesNotExist:
+            Record.create(
+                id=id,
+                theater=entry['theater'],
+                date=entry['date'],
+                team=entry['team'],
+                draw=entry['draw_ratios'] is not None,
+            )
+    entries.sort(key=lambda entry: theater_sort_key(entry.theater))
+    timestamp_readable = timestamp.strftime('%Y%m%d%H%M%S')
+    output = IMAGES_DIR / f'ticketing-{timestamp_readable}.svg'
+    with open(output, 'w') as fp:
+        fp.write(TEMPLATE.render(
+            entries=entries,
+            timestamp=timestamp,
+        ))
+    print(output)
+
+
+if __name__ == '__main__':
+    main()
