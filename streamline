@@ -23,7 +23,6 @@ EOF
             ;;
         -n|--no-postprocess)
             run_postprocess=
-            shift
             ;;
         --)
             shift
