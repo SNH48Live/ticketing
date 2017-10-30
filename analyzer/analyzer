@@ -6,6 +6,7 @@ import logging
 import multiprocessing
 import pathlib
 import re
+import sys
 import time
 
 import attrdict
@@ -30,6 +31,9 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 IMAGES_DIR = ROOT / 'images'
 db = peewee.SqliteDatabase(str(HERE / 'records.db'))
+
+MAX_POOL_SIZE = 8
+MIN_REQUEST_DURATION = 0.5
 
 
 class Record(peewee.Model):
@@ -293,6 +297,7 @@ def get(id, check_draw_ratios=True, known_to_have_draw=False):
 
 # Used in a multiprocessing.Pool.
 def get_wrapper(args):
+    starting_time = time.time()
     # Connection cannot be shared between processes.
     with db.execution_context():
         id, draw = args
@@ -300,6 +305,9 @@ def get_wrapper(args):
             data = get(id)
         else:
             data = get(id, check_draw_ratios=draw, known_to_have_draw=draw)
+    wait_time = starting_time + MIN_REQUEST_DURATION - time.time()
+    if wait_time > 0:
+        time.sleep(wait_time)
     return attrdict.AttrDict(data)
 
 
@@ -328,11 +336,12 @@ def main():
     db.create_tables([Record], safe=True)
     collected = collect_ids()
     timestamp = datetime.datetime.fromtimestamp(int(time.time()), tz=CST)
-    # Use a pool of at most 8 workers; spamming requests could result in
-    # an IP ban (found it out the hard way).
-    poolsize = min(len(collected), 8)
-    with multiprocessing.Pool(poolsize) as pool:
-        entries = list(pool.map(get_wrapper, collected))
+    poolsize = min(len(collected), MAX_POOL_SIZE)
+    if poolsize:
+        with multiprocessing.Pool(poolsize) as pool:
+            entries = list(pool.map(get_wrapper, collected))
+    else:
+        sys.exit("Next week's tickets are not on sale yet.")
     for entry in entries:
         id = entry['id']
         try:
