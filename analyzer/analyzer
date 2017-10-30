@@ -25,6 +25,7 @@ logger.setLevel(logging.INFO)
 CST = datetime.timezone(datetime.timedelta(hours=8))  # China Standard Time
 TODAY = datetime.datetime.now(tz=CST).date()
 NEXT_MONDAY = TODAY + datetime.timedelta((-TODAY.isoweekday()) % 7 + 1)
+NEXT_SUNDAY = NEXT_MONDAY + datetime.timedelta(6)
 
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -109,8 +110,13 @@ def teamid(team):
         return 'k'
 
 
+def date(dt):
+    return dt.strftime('%m月%d日')
+
+
 ENV.filters['theaterid'] = theaterid
 ENV.filters['teamid'] = teamid
+ENV.filters['date'] = date
 
 
 TEMPLATE = ENV.from_string('''\
@@ -157,7 +163,7 @@ TEMPLATE = ENV.from_string('''\
       .k { background: #fe5044; }
     </style>
     <div xmlns="http://www.w3.org/1999/xhtml">
-      <h1>10月30日至11月05日公演售票情况</h1>
+      <h1>{{ start_date|date }}至{{ end_date|date }}公演售票情况</h1>
       <div id="timestamp">生成时间：<time datetime="{{ timestamp.isoformat() }}">{{ timestamp.isoformat() }}</time></div>
       <table>
         <tr>
@@ -361,6 +367,8 @@ def main():
         fp.write(TEMPLATE.render(
             entries=entries,
             timestamp=timestamp,
+            start_date=NEXT_MONDAY,
+            end_date=NEXT_SUNDAY,
         ))
     print(output)
 
