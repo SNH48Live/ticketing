@@ -130,7 +130,7 @@ TEMPLATE = ENV.from_string('''\
       #timestamp time { font-family: Courier, monospace; }
       table { width: 370px; table-layout: fixed; border-collapse: collapse; text-align: center; }
       table, th, td { border: 1px solid #888; }
-      th, td { height: 25px; }
+      th, td { height: 25px; line-height: 21px; }
       th, th.stat { font-weight: bold; color: inherit; background: #dcdcdc; }
       .theater { width: 40px; }
       .date { width: 115px; }
