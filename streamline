@@ -48,7 +48,7 @@ isodatetime=$(TZ=Asia/Shanghai date -d @$timestamp --iso-8601=s)
 output=images/screenshot-$humantimestamp.png
 convert screenshot.png -resize 50% -font Courier -pointsize 16 -gravity southwest -annotate +10+10 $isodatetime $output
 optipng -silent $output
-rm ticketing.png
+rm screenshot.png
 echo $output
 
 [[ -n $run_postprocess && -x postprocess ]] && ./postprocess $output
