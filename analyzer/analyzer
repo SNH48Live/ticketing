@@ -131,10 +131,10 @@ TEMPLATE = ENV.from_string('''\
       table { width: 370px; table-layout: fixed; border-collapse: collapse; text-align: center; }
       table, th, td { border: 1px solid #888; }
       th, td { height: 25px; }
-      th, th.stat { font-weight: bold; color: inherit; background: #e8e8e8; }
+      th, th.stat { font-weight: bold; color: inherit; background: #dcdcdc; }
       .theater { width: 40px; }
       .date { width: 115px; }
-      .weekday { background: #e4e4e4; }
+      .weekday { background: #dcdcdc; }
       .team { width: 60px; padding-left: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .draw { width: 20px; }
       .stat { width: 40px; color: #fff; background: #dcdcdc; }
