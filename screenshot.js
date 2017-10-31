@@ -49,7 +49,7 @@ const puppeteer = require('puppeteer');
   }
 
   await screenshotDOMElement({
-    path: 'ticketing.png',
+    path: 'screenshot.png',
     selector: '.index_2'
   });
 
