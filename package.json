@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "moment-timezone": "^0.5.14",
     "puppeteer": "^0.12.0"
   }
 }

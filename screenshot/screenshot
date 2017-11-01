@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+
+const { exec } = require('child_process');
+const path = require('path');
+const moment = require('moment-timezone');
+const puppeteer = require('puppeteer');
+
+const ROOT = path.dirname(__dirname);
+const IMAGES_DIR = path.join(ROOT, 'images');
+
+(async () => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  page.setViewport({width: 1920, height: 1080, deviceScaleFactor: 2});
+  await page.goto('https://shop.48.cn/', {waitUntil: 'networkidle'});
+  const rect = await page.evaluate(() => {
+    return document.querySelector('.index_2').getBoundingClientRect();
+  });
+  const datetime = moment().tz('Asia/Shanghai');
+  const isodatetime = datetime.format();
+  const fndatetime = datetime.format('YYYY.MM.DD.HH.mm.ss')
+  const output = path.join(IMAGES_DIR, `screenshot-${fndatetime}.png`);
+  await page.screenshot({path: output, clip: rect});
+  browser.close();
+  exec(`mogrify -resize 50% -font Courier -pointsize 16 -gravity southwest -annotate +10+10 ${isodatetime} ${output}`);
+  console.log(output);
+})();
