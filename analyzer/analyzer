@@ -110,13 +110,19 @@ def teamid(team):
         return 'k'
 
 
-def date(dt):
+def zh_date(dt):
     return dt.strftime('%m月%d日')
+
+
+def zh_datetime(dt):
+    dt = dt.astimezone(tz=CST)
+    return dt.strftime('北京时间 %Y年%m月%d日 %H:%M:%S')
 
 
 ENV.filters['theaterid'] = theaterid
 ENV.filters['teamid'] = teamid
-ENV.filters['date'] = date
+ENV.filters['date'] = zh_date
+ENV.filters['datetime'] = zh_datetime
 
 
 TEMPLATE = ENV.from_string('''\
@@ -127,7 +133,6 @@ TEMPLATE = ENV.from_string('''\
       div { background: #fff; }
       h1 { font-size: 100%; text-align: center; margin: 3px; }
       #timestamp { font-size: 60%; text-align: center; margin: 3px; }
-      #timestamp time { font-family: Courier, monospace; }
       table { width: 370px; table-layout: fixed; border-collapse: collapse; text-align: center; }
       table, th, td { border: 1px solid #888; }
       th, td { height: 25px; line-height: 21px; }
@@ -164,7 +169,7 @@ TEMPLATE = ENV.from_string('''\
     </style>
     <div xmlns="http://www.w3.org/1999/xhtml">
       <h1>{{ start_date|date }}至{{ end_date|date }}公演售票情况</h1>
-      <div id="timestamp">生成时间：<time datetime="{{ timestamp.isoformat() }}">{{ timestamp.isoformat() }}</time></div>
+      <div id="timestamp">生成时间：<time datetime="{{ timestamp.isoformat() }}">{{ timestamp|datetime }}</time></div>
       <table>
         <tr>
           <th class="theater">剧场</th>
