@@ -1,0 +1,4 @@
+#!/usr/bin/env zsh
+here=$0:A:h
+mkdir -p $here/images/old
+find $here/images -maxdepth 1 -type f -mtime +0 -exec mv -t $here/images/old '{}' +
