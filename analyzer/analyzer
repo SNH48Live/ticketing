@@ -366,7 +366,7 @@ def main():
                 draw=entry['draw_ratios'] is not None,
             )
     entries.sort(key=lambda entry: theater_sort_key(entry.theater))
-    timestamp_readable = timestamp.strftime('%Y.%m.%d.%H.%M.%S')
+    timestamp_readable = timestamp.strftime('%Y.%m.%d-%H.%M.%S')
     output = IMAGES_DIR / f'ticketing-{timestamp_readable}.svg'
     with open(output, 'w') as fp:
         fp.write(TEMPLATE.render(

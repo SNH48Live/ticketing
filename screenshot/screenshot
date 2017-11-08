@@ -18,7 +18,7 @@ const IMAGES_DIR = path.join(ROOT, 'images');
   });
   const datetime = moment().tz('Asia/Shanghai');
   const isodatetime = datetime.format();
-  const fndatetime = datetime.format('YYYY.MM.DD.HH.mm.ss')
+  const fndatetime = datetime.format('YYYY.MM.DD-HH.mm.ss')
   const output = path.join(IMAGES_DIR, `screenshot-${fndatetime}.png`);
   await page.screenshot({path: output, clip: rect});
   browser.close();
