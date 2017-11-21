@@ -367,7 +367,9 @@ def main():
             )
     entries.sort(key=lambda entry: theater_sort_key(entry.theater))
     timestamp_readable = timestamp.strftime('%Y.%m.%d-%H.%M.%S')
-    output = IMAGES_DIR / f'ticketing-{timestamp_readable}.svg'
+    week_id = NEXT_MONDAY.strftime('%Y-W%W')
+    (IMAGES_DIR / week_id).mkdir(exist_ok=True)
+    output = IMAGES_DIR / week_id / f'ticketing-{timestamp_readable}-{week_id}.svg'
     with open(output, 'w') as fp:
         fp.write(TEMPLATE.render(
             entries=entries,
