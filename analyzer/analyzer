@@ -214,13 +214,13 @@ def parse_page_html(html):
     # Extract metadata
     title = soup.find(class_='i_tit').text
 
-    m = re.match(r'(.*)星梦剧院(\d+)月(\d+)日(.*?)(?:剧场)?公演(?:首演)?$', title)
+    m = re.match(r'(.*)星梦剧院(\d+)月(\d+)日(.*?)(?:剧场)?(公演(?:首演)?|巡演)$', title)
     if not m:
         raise ValueError(f'malformed title: {title}')
     theater = m.group(1)
     month = int(m.group(2))
     day = int(m.group(3))
-    team = m.group(4)
+    team = m.group(4).strip()
 
     if theater not in ('上海', '北京', '广州', '沈阳', '重庆'):
         raise ValueError(f'unrecognized theater location: {location}')
