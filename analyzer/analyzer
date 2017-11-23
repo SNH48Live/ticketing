@@ -77,37 +77,60 @@ def theater_sort_key(theater):
         return 4
 
 
+def parse_team(team_string):
+    if team_string.startswith('S队') or team_string.startswith('SII队'):
+        return 'SⅡ'
+    elif team_string.startswith('N队') or team_string.startswith('NII队'):
+        return 'NⅡ'
+    elif team_string.startswith('H队') or team_string.startswith('HII队'):
+        return 'HⅡ'
+    elif team_string.startswith('X队'):
+        return 'X'
+    elif team_string.startswith('XII队'):
+        return 'XⅡ'
+    elif team_string.startswith('B队'):
+        return 'B'
+    elif team_string.startswith('E队'):
+        return 'E'
+    elif team_string.startswith('J队'):
+        return 'J'
+    elif team_string.startswith('G队'):
+        return 'G'
+    elif team_string.startswith('NIII队'):
+        return 'NⅢ'
+    elif team_string.startswith('Z队'):
+        return 'Z'
+    elif team_string.startswith('SIII队'):
+        return 'SⅢ'
+    elif team_string.startswith('HIII队'):
+        return 'HⅢ'
+    elif team_string.startswith('C队'):
+        return 'C'
+    elif team_string.startswith('K队'):
+        return 'K'
+    else:
+        return ''
+
+
 def teamid(team):
-    if team.startswith('S队') or team.startswith('SII队'):
-        return 's2'
-    elif team.startswith('N队') or team.startswith('NII队'):
-        return 'n2'
-    elif team.startswith('H队') or team.startswith('HII队'):
-        return 'h2'
-    elif team.startswith('X队'):
-        return 'x'
-    elif team.startswith('XII队'):
-        return 'x2'
-    elif team.startswith('B队'):
-        return 'b'
-    elif team.startswith('E队'):
-        return 'e'
-    elif team.startswith('J队'):
-        return 'j'
-    elif team.startswith('G队'):
-        return 'g'
-    elif team.startswith('NIII队'):
-        return 'n3'
-    elif team.startswith('Z队'):
-        return 'z'
-    elif team.startswith('SIII队'):
-        return 's3'
-    elif team.startswith('HIII队'):
-        return 'h3'
-    elif team.startswith('C队'):
-        return 'c'
-    elif team.startswith('K队'):
-        return 'k'
+    mapping = {
+        'SⅡ': 's2',
+        'NⅡ': 'n2',
+        'HⅡ': 'h2',
+        'X': 'x',
+        'XⅡ': 'x2',
+        'B': 'b',
+        'E': 'e',
+        'J': 'j',
+        'G': 'g',
+        'NⅢ': 'n3',
+        'Z': 'z',
+        'SⅢ': 's3',
+        'HⅢ': 'h3',
+        'C': 'c',
+        'K': 'k',
+    }
+    return mapping.get(team, '')
 
 
 def zh_date(dt):
@@ -137,10 +160,10 @@ TEMPLATE = ENV.from_string('''\
       table, th, td { border: 1px solid #888; }
       th, td { height: 25px; line-height: 21px; }
       th, th.stat { font-weight: bold; color: inherit; background: #dcdcdc; }
-      .theater { width: 40px; }
+      .theater { width: 45px; }
       .date { width: 115px; }
       .weekday { background: #dcdcdc; }
-      .team { width: 60px; padding-left: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .team { width: 55px; }
       .draw { width: 20px; }
       .stat { width: 40px; color: #fff; background: #dcdcdc; }
       .vip.open { background: #f39800; }
@@ -214,13 +237,13 @@ def parse_page_html(html):
     # Extract metadata
     title = soup.find(class_='i_tit').text
 
-    m = re.match(r'(.*)星梦剧院(\d+)月(\d+)日(.*?)(?:剧场)?(公演(?:首演)?|巡演)$', title)
+    m = re.match(r'^(.*)星梦剧院(\d+)月(\d+)日(.*?)$', title)
     if not m:
         raise ValueError(f'malformed title: {title}')
     theater = m.group(1)
     month = int(m.group(2))
     day = int(m.group(3))
-    team = m.group(4).strip()
+    team = parse_team(m.group(4).strip())
 
     if theater not in ('上海', '北京', '广州', '沈阳', '重庆'):
         raise ValueError(f'unrecognized theater location: {location}')
