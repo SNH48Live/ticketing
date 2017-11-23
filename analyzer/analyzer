@@ -35,8 +35,21 @@ ROOT = HERE.parent
 IMAGES_DIR = ROOT / 'images'
 db = peewee.SqliteDatabase(str(HERE / 'records.db'))
 
-MAX_POOL_SIZE = 8
+MAX_POOL_SIZE = 1
 MIN_REQUEST_DURATION = 0.5
+
+
+def load_config():
+    global MAX_POOL_SIZE
+    global MIN_REQUEST_DURATION
+    file = HERE / 'config.yml'
+    with open(file) as fp:
+        config = yaml.load(fp)
+        MAX_POOL_SIZE = int(config.get('max_pool_size', 1))
+        MIN_REQUEST_DURATION = float(config.get('min_request_duration', 0.5))
+
+
+load_config()
 
 
 # Allow an analyzer/overrides.yml to override values, such as team, in
