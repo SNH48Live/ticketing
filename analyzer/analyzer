@@ -2,7 +2,6 @@
 
 import argparse
 import datetime
-import json
 import locale
 import logging
 import multiprocessing
@@ -16,6 +15,7 @@ import bs4
 import jinja2
 import peewee
 import requests
+import yaml
 
 
 locale.setlocale(locale.LC_TIME, 'zh_CN.UTF-8')
@@ -39,17 +39,17 @@ MAX_POOL_SIZE = 8
 MIN_REQUEST_DURATION = 0.5
 
 
-# Allow an analyzer/overrides.json to override values, such as team, in
-# the database. The JSON file should contain an array, each with a
+# Allow an analyzer/overrides.yml to override values, such as team, in
+# the database. The YAML file should contain an array, each with a
 # mandatory 'id' key (integer), and other optional keys such as 'team'.
 OVERRIDES = {}
 
 
 def load_overrides():
-    file = HERE / 'overrides.json'
+    file = HERE / 'overrides.yml'
     if file.exists():
         with open(file) as fp:
-            for entry in json.load(fp):
+            for entry in yaml.load(fp):
                 if 'id' in entry:
                     OVERRIDES[entry['id']] = entry
 

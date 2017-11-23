@@ -1,4 +1,5 @@
 Jinja2
+PyYAML
 attrdict
 beautifulsoup4
 peewee
