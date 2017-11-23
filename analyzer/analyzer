@@ -85,29 +85,19 @@ ENV = jinja2.Environment(loader=jinja2.BaseLoader())
 
 
 def theaterid(theater):
-    if theater == '上海':
-        return 'snh'
-    elif theater == '北京':
-        return 'bej'
-    elif theater == '广州':
-        return 'gnz'
-    elif theater == '沈阳':
-        return 'shy'
-    elif theater == '重庆':
-        return 'ckg'
+    mapping = {
+        '上海': 'snh',
+        '北京': 'bej',
+        '广州': 'gnz',
+        '沈阳': 'shy',
+        '重庆': 'ckg',
+    }
+    return mapping[theater]
 
 
 def theater_sort_key(theater):
-    if theater == '上海':
-        return 0
-    elif theater == '北京':
-        return 1
-    elif theater == '广州':
-        return 2
-    elif theater == '沈阳':
-        return 3
-    elif theater == '重庆':
-        return 4
+    theaters = ['上海', '北京', '广州', '沈阳', '重庆']
+    return theaters.index(theater)
 
 
 def parse_team(team_string):
